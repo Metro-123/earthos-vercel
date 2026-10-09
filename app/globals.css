@@ -1,0 +1,12 @@
+/* Tailink CSS variables and reset */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Earth colors */
+:root {
+  --color-earth: #2b1b0c;
+  --color-atmosphere: #4a90e2;
+  --color-ocean: #1e3a5f;
+  --color-land: #d4c19e;
+}

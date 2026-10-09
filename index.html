@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EarthOS — Interactive Earth Simulation</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r156/three.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; background: #0a0a20; }
+    #container { height: 100%; }
+    
+    /* HUD overlay */
+    .hud {
+      position: fixed; top: 20px; left: 20px; color: white; font-family: sans-serif; z-index: 10;
+    }
+    .hud h1 { font-size: 1.2rem; margin-bottom: 10px; }
+    .controls { margin-top: 10px; }
+    .control-btn { 
+      background: rgba(43, 27, 12, 0.8); 
+      border: 1px solid #6b5b4a; 
+      color: #d4c19e; 
+      padding: 6px 12px; 
+      margin: 2px; 
+      border-radius: 4px; 
+      cursor: pointer; 
+      font-size: 0.85rem;
+    }
+    .control-btn:hover { background: rgba(74, 144, 226, 0.5); }
+  </style>
+</head>
+<body>
+  <div id="container"></div>
+  
+  <div class="hud">
+    <h1>EarthOS Simulation</h1>
+    <div class="controls">
+      <button class="control-btn" id="orbitBtn">Orbit Earth</button>
+      <button class="control-btn" id="spinBtn">Spin Toggle</button>
+      <button class="control-btn" id="resetBtn">Reset View</button>
+    </div>
+    <div style="margin-top: 10px; font-size: 0.75rem; color: #888;">
+      Swift-inspired orbital mechanics • Built with Three.js • Vercel deployment
+    </div>
+  </div>
+
+  <script>
+    // Initialize Three.js scene
+    const container = document.getElementById("container");
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a20);
+
+    const camera = new THREE.PerspectiveCamera(
+      60,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      100
+    );
+    camera.position.set(0, 2, 5);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    container.appendChild(renderer.domElement);
+
+    // Stars background
+    const starCount = 2000;
+    const starGeometry = new THREE.BufferGeometry();
+    const starPositions = new Float32Array(starCount * 3);
+    const starSizes = new Float32Array(starCount);
+
+    for (let i = 0; i < starCount; i++) {
+      const radius = 5 + Math.random() * 10;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+
+      starPositions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+      starPositions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+      starPositions[i * 3 + 2] = radius * Math.cos(phi);
+
+      starSizes[i] = 1 + Math.random() * 2;
+    }
+
+    starGeometry.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
+    const starMaterial = new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 0.2,
+      sizeAttenuation: true,
+    });
+    const stars = new THREE.Points(starGeometry, starMaterial);
+    scene.add(stars);
+
+    // Earth
+    const earthGeometry = new THREE.SphereGeometry(1, 64, 64);
+    const earthMaterial = new THREE.MeshStandardMaterial({
+      color: 0x2b1b0c,
+      roughness: 0.8,
+      metalness: 0.1,
+    });
+    const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+    earth.castShadow = true;
+    earth.receiveShadow = true;
+    scene.add(earth);
+
+    // Sun light
+    const sun = new THREE.DirectionalLight(0xffffff, 1.5);
+    sun.position.set(5, 3, 7);
+    scene.add(sun);
+
+    // Ambient light
+    scene.add(new THREE.AmbientLight(0x404040, 0.5));
+
+    // Moon
+    const moonGeometry = new THREE.SphereGeometry(0.27, 32, 32);
+    const moonMaterial = new THREE.MeshStandardMaterial({ color: 0xd3d3d3 });
+    const moon = new THREE.Mesh(moonGeometry, moonMaterial);
+    moon.position.set(3, 0, 0);
+    scene.add(moon);
+
+    // Rotation state
+    let isSpinning = true;
+    const clock = new THREE.Clock();
+
+    // Animation loop
+    const animate = () => {
+      requestAnimationFrame(animate);
+
+      const elapsed = clock.getElapsedTime();
+
+      // Rotate Earth
+      earth.rotation.y += 0.005;
+
+      // Orbit Moon
+      moon.position.x = 3 * Math.sin(elapsed * 0.5);
+      moon.position.z = 3 * Math.cos(elapsed * 0.5);
+
+      // Toggle spin
+      if (!isSpinning) {
+        earth.rotation.y += 0.005;
+      }
+
+      renderer.render(scene, camera);
+    };
+
+    animate();
+
+    // Controls
+    document.getElementById("spinBtn").addEventListener("click", () => {
+      isSpinning = !isSpinning;
+      document.getElementById("spinBtn").textContent = isSpinning ? "Spin Toggle" : "Pause Spin";
+    });
+
+    document.getElementById("orbitBtn").addEventListener("click", () => {
+      // Toggle camera orbit
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      camera.position.set(0, 2, 5);
+      camera.lookAt(0, 0, 0);
+    });
+
+    // Handle resize
+    window.addEventListener("resize", () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
